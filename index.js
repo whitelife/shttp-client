@@ -141,18 +141,3 @@ class HttpClient {
 }
 
 module.exports = HttpClient;
-
-
-HttpClient.request({
-    host: 'www.naver.com',
-    method: 'get',
-    path: '/',
-    encoding: 'utf8',
-}, (err, body) => {
-
-    if (err) {
-        throw err;
-    }
-
-    console.log(body);
-});

@@ -1,0 +1,30 @@
+{
+  "name": "shttp-client",
+  "version": "0.1.0",
+  "description": "simple http client",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whitelife/shttp-client.git"
+  },
+  "keywords": [
+    "http",
+    "client"
+  ],
+  "author": "whitelife < parkmc_0@naver.com >",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/whitelife/shttp-client/issues"
+  },
+  "homepage": "https://github.com/whitelife/shttp-client#readme",
+  "dependencies": {
+    "async": "^2.0.1",
+    "debug": "^2.2.0",
+    "form-data": "^1.0.1",
+    "mime-types": "^2.1.11",
+    "qs": "^6.2.1"
+  }
+}

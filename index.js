@@ -98,7 +98,7 @@ httpClientEvent.on('init', (options = {}, callback) => {
             }, (err) => {
 
                 if (err) {
-                    httpClientEvent.emit('end', e, options, null, callback);
+                    httpClientEvent.emit('end', e, options, null, null, callback);
                 }
 
                 delete options.body;
@@ -152,8 +152,8 @@ httpClientEvent.on('downloadImage', (url, callback) => {
         });
     });
 
-    req.on('error', (e) => {
-        return callback(e);
+    req.on('error', (err) => {
+        return callback(err);
     });
 
     req.end();
@@ -185,12 +185,13 @@ httpClientEvent.on('request', (options, form, callback) => {
         });
 
         res.on('end', () => {
-            httpClientEvent.emit('end', null, options, buffer, callback);
+
+            httpClientEvent.emit('end', null, options, res, buffer, callback);
         });
     });
 
-    req.on('error', (e) => {
-        httpClientEvent.emit('end', e, options, null, callback);
+    req.on('error', (err) => {
+        httpClientEvent.emit('end', err, options, null, null, callback);
     });
 
     if (options.body !== undefined && form === null) {
@@ -202,11 +203,9 @@ httpClientEvent.on('request', (options, form, callback) => {
     }
 });
 
-httpClientEvent.on('end', (err, options, body, callback) => {
+httpClientEvent.on('end', (err, options, res, body, callback) => {
 
-    if (err) {
-        return callback(err);
-    }
+    res = res || {};
 
     if (options._tmpFiles !== undefined && options._tmpFiles.length > 0) {
 
@@ -215,14 +214,23 @@ httpClientEvent.on('end', (err, options, body, callback) => {
             fs.unlink(value, (_err) => {
                 iterateeCallback();
             });
-        }, (err) => {
-            return callback(null, body);
+        }, (_err) => {
+
+            if (err) {
+                return callback(err);
+            }
+
+            return callback(null, res, res.statusCode || null, res.statusMessage || null, res.headers || {}, body);
         });
 
         return;
     }
 
-    callback(null, body);
+    if (err) {
+        return callback(err);
+    }
+
+    return callback(null, res, res.statusCode || null, res.statusMessage || null, res.headers || {}, body);
 });
 
 class HttpClient {

@@ -19,13 +19,16 @@ shttpClient.request({
     method: 'get',
     path: '/',
     encoding: 'utf8',
-}, (err, body) => {
+}, (err, res, code, message, headers, body) => {
 
     if (err) {
         throw err;
     }
 
-    console.log(body);
+    console.log(`code: ${code}`);
+    console.log(`message: ${message}`);
+    console.log(`headers: ${headers}`);
+    console.log(`body: ${body}`);
 });
 ```
 
@@ -37,13 +40,14 @@ const body = {
     // object
     object: {
         key1: 'value1',
-        value2: value2
+        value2: 'value2'
     },
 
+    // array
     array: [
         object: {
             key1: 'value1',
-            value2: value2
+            value2: 'value2'
         }
     ],
 

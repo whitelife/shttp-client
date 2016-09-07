@@ -2,6 +2,7 @@
 'use strict';
 
 const debug = require('debug')('httpClient');
+const domain = require('domain');
 const async = require('async');
 const http = require('http');
 const https = require('https');
@@ -11,8 +12,10 @@ const querystring = {
 };
 const mimetypes = require('mime-types');
 const path = require('path');
+const parseurl = require('parseurl');
 const fs = require('fs');
-const stream = require('stream');
+const os = require('os');
+const uuid = require('uuid');
 const FormData = require('form-data');
 const EventEmitter = require('events');
 
@@ -32,13 +35,13 @@ httpClientEvent.on('init', (options = {}, callback) => {
 
     const query = options.query || null;
 
-    if (query !== null) {
+    if (query !== undefined && query !== null) {
         options.path = `${options.path}?${querystring.multiple.stringify(query)}`;
     }
 
     const body = options.body || null;
 
-    if (body !== null) {
+    if (body !== undefined && body !== null) {
         let contentType = options.headers['Content-Type'] || 'application/x-www-form-urlencoded';
         const isMultipart = contentType.indexOf('multipart/form-data') !== -1 ? true : false;
 
@@ -57,27 +60,104 @@ httpClientEvent.on('init', (options = {}, callback) => {
                 querystring.multiple.stringify(body)
             );
 
-            Object.keys(options.body).forEach((key, index) => {
+            async.forEachOf(options.body, (value, key, iterateeCallback) => {
 
-                let value = options.body[key] || '';
+                value = value || '';
 
                 if (typeof value === 'string' && value.substring(0, 8) === 'file:///') {
                     value = fs.createReadStream(value.substring(8));
-                    console.log(value);
+                    form.append(key, value);
+                    return iterateeCallback();
+                }
+
+                if (typeof value === 'string' && value.substring(0, 9) === 'image:///') {
+
+                    httpClientEvent.emit('downloadImage', value.substring(9), (err, imagePath) => {
+                        if (err) {
+                            return iterateeCallback();
+                        }
+
+                        value = fs.createReadStream(imagePath);
+                        const imagePathParts = path.parse(imagePath);
+
+                        form.append(key, value, {
+                            filename: imagePathParts.base.substring(imagePathParts.base.indexOf('_') + 1),
+                            contentType: mimetypes.lookup(imagePath)
+                        });
+
+                        options._tmpFiles = options._tmpFiles || [];
+                        options._tmpFiles.push(imagePath);
+
+                        return iterateeCallback();
+                    });
+
+                    return;
                 }
 
                 form.append(key, value);
+                iterateeCallback();
+            }, (err) => {
+
+                if (err) {
+                    httpClientEvent.emit('end', e, options, null, callback);
+                }
+
+                delete options.body;
+                return httpClientEvent.emit('request', options, form, callback);
             });
-
-            delete options.body;
-
-            return httpClientEvent.emit('request', options, form, callback);
         }
 
         return;
     }
 
     httpClientEvent.emit('request', options, null, callback);
+});
+
+httpClientEvent.on('downloadImage', (url, callback) => {
+
+    const info = parseurl.original({
+        originalUrl: url
+    });
+
+    const pathParts = path.parse(info.path);
+
+    if (info.port === null) {
+        info.port = info.protocol === 'http:' ? 80 : 443;
+    }
+
+    const options = {
+        protocol: info.protocol,
+        host: info.host,
+        port: info.port,
+        path: info.path
+    }
+
+    const req = options.protocol === 'http:' ? http.request(options) : https.request(options);
+
+    req.on('response', (res) => {
+
+        const uuidv4 = uuid.v4();
+        const tmpImageStream = fs.createWriteStream(`${os.tmpdir()}/${uuidv4}_${pathParts.base}`, {
+            encoding: 'binary'
+        });
+
+        res.setEncoding('binary');
+
+        res.on('data', (chunk) => {
+            tmpImageStream.write(chunk);
+        });
+
+        res.on('end', () => {
+            tmpImageStream.end();
+            return callback(null, tmpImageStream.path);
+        });
+    });
+
+    req.on('error', (e) => {
+        return callback(e);
+    });
+
+    req.end();
 });
 
 httpClientEvent.on('request', (options, form, callback) => {
@@ -106,12 +186,12 @@ httpClientEvent.on('request', (options, form, callback) => {
         });
 
         res.on('end', () => {
-            httpClientEvent.emit('end', null, buffer, callback);
+            httpClientEvent.emit('end', null, options, buffer, callback);
         });
     });
 
     req.on('error', (e) => {
-        httpClientEvent.emit('end', e, null, callback);
+        httpClientEvent.emit('end', e, options, null, callback);
     });
 
     if (options.body !== undefined && form === null) {
@@ -123,10 +203,24 @@ httpClientEvent.on('request', (options, form, callback) => {
     }
 });
 
-httpClientEvent.on('end', (err, body, callback) => {
+httpClientEvent.on('end', (err, options, body, callback) => {
 
     if (err) {
         return callback(err);
+    }
+
+    if (options._tmpFiles !== undefined && options._tmpFiles.length > 0) {
+
+        async.forEachOf(options._tmpFiles, (value, key, iterateeCallback) => {
+
+            fs.unlink(value, (_err) => {
+                iterateeCallback();
+            });
+        }, (err) => {
+            return callback(null, body);
+        });
+
+        return;
     }
 
     callback(null, body);
@@ -136,7 +230,15 @@ class HttpClient {
 
     static request(options, callback) {
 
-        httpClientEvent.emit('init', options, callback);
+        const requestDomain = domain.create();
+
+        requestDomain.on('error', (e) => {
+            return callback(e);
+        })
+
+        requestDomain.run(() => {
+            httpClientEvent.emit('init', options, callback);
+        });
     }
 }
 

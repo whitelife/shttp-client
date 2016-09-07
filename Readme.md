@@ -29,6 +29,29 @@ shttpClient.request({
 });
 ```
 
+## Body Example
+
+```javascript
+const body = {
+
+    // object
+    object: {
+        key1: 'value1',
+        value2: value2
+    },
+
+    array: [
+        object: {
+            key1: 'value1',
+            value2: value2
+        }
+    ],
+
+    file: 'file:////home/test.jpg', // alias: 'file:///'
+    image: 'image:///http://test.com/test.jpg' // alias: 'image///'
+}
+```
+
 ## Options
 
 - `protocol` - http: `http:`, https: `https:`, (default: http:)
@@ -38,6 +61,6 @@ shttpClient.request({
 - `path` - http request uri (default: /)
 - `headers` - http request headers
 - `query` - http request querystring object (ex: { a: 'b'. c: 'd' })
-- `body` - http body object (ex: { a: 'b'. c: 'd', file: 'file:///path' })
+- `body` - http body object (ex: { a: 'b'. c: 'd', file: 'file:///path', image: 'image:///url' })
 - `encoding` - http encoding (default: utf8)
 - `timeout` - http request timeout (default: 120000)

@@ -2,7 +2,6 @@
 'use strict';
 
 const debug = require('debug')('httpClient');
-const domain = require('domain');
 const async = require('async');
 const http = require('http');
 const https = require('https');
@@ -230,15 +229,7 @@ class HttpClient {
 
     static request(options, callback) {
 
-        const requestDomain = domain.create();
-
-        requestDomain.on('error', (e) => {
-            return callback(e);
-        })
-
-        requestDomain.run(() => {
-            httpClientEvent.emit('init', options, callback);
-        });
+        httpClientEvent.emit('init', options, callback);
     }
 }
 

@@ -52,7 +52,7 @@ const body = {
     ],
 
     file: 'file:////home/test.jpg', // alias: 'file:///'
-    image: 'image:///http://test.com/test.jpg' // alias: 'image///'
+    image: 'url:///http://test.com/test.jpg' // alias: 'url///'
 }
 ```
 
@@ -65,6 +65,6 @@ const body = {
 - `path` - http request uri (default: /)
 - `headers` - http request headers
 - `query` - http request querystring object (ex: { a: 'b'. c: 'd' })
-- `body` - http body object (ex: { a: 'b'. c: 'd', file: 'file:///path', image: 'image:///url' })
+- `body` - http body object (ex: { a: 'b'. c: 'd', file: 'file:///path', image: 'url:///url' })
 - `encoding` - http encoding (default: utf8)
 - `timeout` - http request timeout (default: 120000)

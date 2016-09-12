@@ -69,10 +69,15 @@ httpClientEvent.on('init', (options = {}, callback) => {
                     return iterateeCallback();
                 }
 
-                if (typeof value === 'string' && value.substring(0, 9) === 'image:///') {
+                if (typeof value === 'string' && value.substring(0, 7) === 'url:///') {
 
-                    httpClientEvent.emit('downloadImage', value.substring(9), (err, imagePath) => {
+                    httpClientEvent.emit('downloadImage', value.substring(7), (err, imagePath) => {
                         if (err) {
+                            return iterateeCallback();
+                        }
+
+                        // invalid imagePath
+                        if (imagePath === null) {
                             return iterateeCallback();
                         }
 
@@ -98,7 +103,7 @@ httpClientEvent.on('init', (options = {}, callback) => {
             }, (err) => {
 
                 if (err) {
-                    httpClientEvent.emit('end', e, options, null, null, callback);
+                    httpClientEvent.emit('end', err, options, null, null, callback);
                 }
 
                 delete options.body;
@@ -135,6 +140,10 @@ httpClientEvent.on('downloadImage', (url, callback) => {
 
     req.on('response', (res) => {
 
+        if (res.statusCode !== 200) {
+            return callback(null, null);
+        }
+
         const uuidv4 = uuid.v4();
         const tmpImageStream = fs.createWriteStream(`${os.tmpdir()}/${uuidv4}_${pathParts.base}`, {
             encoding: 'binary'
@@ -153,7 +162,7 @@ httpClientEvent.on('downloadImage', (url, callback) => {
     });
 
     req.on('error', (err) => {
-        return callback(err);
+        return callback(null, null);
     });
 
     req.end();

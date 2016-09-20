@@ -73,6 +73,7 @@ httpClientEvent.on('init', (options = {}, callback) => {
 
                     httpClientEvent.emit('downloadImage', value.substring(7), (err, imagePath) => {
                         if (err) {
+                            debug('downloadImage callback err: ', err);
                             return iterateeCallback();
                         }
 
@@ -81,7 +82,12 @@ httpClientEvent.on('init', (options = {}, callback) => {
                             return iterateeCallback();
                         }
 
+                        debug('downloadImage callback path: %o', imagePath);
+
                         value = fs.createReadStream(imagePath);
+
+                        debug('downloadImage callback createReadStream %o', imagePath);
+
                         const imagePathParts = path.parse(imagePath);
 
                         form.append(key, value, {
@@ -103,6 +109,7 @@ httpClientEvent.on('init', (options = {}, callback) => {
             }, (err) => {
 
                 if (err) {
+                    debug('body data err: ', err);
                     httpClientEvent.emit('end', err, options, null, null, callback);
                 }
 
@@ -162,6 +169,7 @@ httpClientEvent.on('downloadImage', (url, callback) => {
     });
 
     req.on('error', (err) => {
+        debug('downloadImage request err: ', err);
         return callback(null, null);
     });
 
@@ -200,6 +208,7 @@ httpClientEvent.on('request', (options, form, callback) => {
     });
 
     req.on('error', (err) => {
+        debug('request err: ', err);
         httpClientEvent.emit('end', err, options, null, null, callback);
     });
 
@@ -217,6 +226,8 @@ httpClientEvent.on('end', (err, options, res, body, callback) => {
     res = res || {};
 
     if (options._tmpFiles !== undefined && options._tmpFiles.length > 0) {
+
+        debug('file system unlink %o', options._tmpFiles);
 
         async.forEachOf(options._tmpFiles, (value, key, iterateeCallback) => {
 

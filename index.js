@@ -72,7 +72,7 @@ httpClientEvent.on('init', (options = {}, callback) => {
 
                 if (typeof value === 'string' && value.substring(0, 7) === 'url:///') {
 
-                    httpClientEvent.emit('downloadImage', value.substring(7), (err, imagePath) => {
+                    httpClientEvent.emit('downloadImage', value.substring(7), options.timeout, (err, imagePath) => {
                         if (err) {
                             debug('downloadImage callback err: ', err);
                             return iterateeCallback();
@@ -125,7 +125,7 @@ httpClientEvent.on('init', (options = {}, callback) => {
     httpClientEvent.emit('request', options, null, callback);
 });
 
-httpClientEvent.on('downloadImage', (url, callback) => {
+httpClientEvent.on('downloadImage', (url, timeout, callback) => {
 
     const info = parseurl.original({
         originalUrl: url
@@ -146,6 +146,13 @@ httpClientEvent.on('downloadImage', (url, callback) => {
 
     const req = options.protocol === 'http:' ? http.request(options) : https.request(options);
 
+    req.on('socket', (socket) => {
+        socket.setTimeout(timeout);
+        socket.on('timeout', () => {
+            req.abort();
+        });
+    });
+
     req.on('response', (res) => {
 
         if (res.statusCode !== 200) {
@@ -164,14 +171,16 @@ httpClientEvent.on('downloadImage', (url, callback) => {
                 encoding: 'binary'
             });
 
-            res.setEncoding('binary');
-
             res.on('data', (chunk) => {
                 tmpImageStream.write(chunk);
             });
 
             res.on('end', () => {
                 tmpImageStream.end();
+            });
+
+            tmpImageStream.on('finish', () => {
+                debug(`${tmpImageStream.path} finish`);
                 return callback(null, tmpImageStream.path);
             });
         });

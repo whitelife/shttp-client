@@ -151,20 +151,28 @@ httpClientEvent.on('downloadImage', (url, callback) => {
             return callback(null, null);
         }
 
-        const uuidv4 = uuid.v4();
-        const tmpImageStream = fs.createWriteStream(`${os.tmpdir()}/${uuidv4}_${pathParts.base}`, {
-            encoding: 'binary'
-        });
+        mkdirp(`${os.tmpdir()}/tmp`, (err) => {
 
-        res.setEncoding('binary');
+            if (err) {
+                debug('downloadImage request err: ', err);
+                return callback(null, null);
+            }
 
-        res.on('data', (chunk) => {
-            tmpImageStream.write(chunk);
-        });
+            const uuidv4 = uuid.v4();
+            const tmpImageStream = fs.createWriteStream(`${os.tmpdir()}/tmp/${uuidv4}_${pathParts.base}`, {
+                encoding: 'binary'
+            });
 
-        res.on('end', () => {
-            tmpImageStream.end();
-            return callback(null, tmpImageStream.path);
+            res.setEncoding('binary');
+
+            res.on('data', (chunk) => {
+                tmpImageStream.write(chunk);
+            });
+
+            res.on('end', () => {
+                tmpImageStream.end();
+                return callback(null, tmpImageStream.path);
+            });
         });
     });
 

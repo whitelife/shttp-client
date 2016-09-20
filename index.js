@@ -1,7 +1,7 @@
 
 'use strict';
 
-const debug = require('debug')('httpClient');
+const debug = require('debug')('shttp-client');
 const async = require('async');
 const http = require('http');
 const https = require('https');
